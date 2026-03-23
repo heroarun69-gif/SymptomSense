@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SymptomSense — Describe your symptoms in plain English and get preliminary health guidance, self-care tips, and 'when to see a doctor' advice. Powered by Aurex AI.">
+  <title>SymptomSense — AI Symptom Guidance</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>">
+</head>
+<body>
+
+  <!-- Animated background orbs -->
+  <div class="bg-effects">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="app-container">
+
+    <!-- ─── APP VIEWS ───────────────────────────── -->
+
+    <!-- ✅ VIEW: AUTH (Sign In / Sign Up) -->
+    <div id="view-auth" class="app-view active">
+      <div class="auth-card">
+        <div class="auth-logo">🩺</div>
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Sign in to access your health data</p>
+
+        <div class="input-group" style="text-align: left; margin-bottom: 16px;">
+          <label>Email Address</label>
+          <input type="email" id="auth-email" placeholder="you@example.com">
+        </div>
+
+        <div class="input-group" style="text-align: left;">
+          <label>Password</label>
+          <input type="password" id="auth-password" placeholder="••••••••">
+        </div>
+
+        <button id="auth-btn" class="auth-btn">Sign In</button>
+
+        <div class="auth-toggle">
+          Don't have an account? <a href="#" id="auth-swap-mode">Sign up</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ VIEW: CHECKER (Home) -->
+    <div id="view-checker" class="app-view">
+      
+      <!-- ─── Navbar ──────────────────────────────── -->
+      <nav class="navbar" id="navbar">
+        <div class="navbar-brand">
+          <div class="brand-icon">🩺</div>
+          <div class="brand-name">Symptom<span>Sense</span></div>
+        </div>
+        <div class="aurex-badge">
+          <span class="dot"></span>
+          Powered by Aurex AI
+        </div>
+      </nav>
+
+      <!-- ─── Hero ────────────────────────────────── -->
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">
+        <span class="icon">✨</span>
+        AI-Powered Health Guidance
+      </div>
+      <h1>
+        Understand Your Symptoms<br>
+        <span class="gradient-text">With Confidence</span>
+      </h1>
+      <p class="hero-subtitle">
+        Describe how you're feeling in your own words. Get clear, preliminary guidance
+        and know exactly when it's time to see a doctor.
+      </p>
+    </section>
+
+    <!-- ─── Input Section ───────────────────────── -->
+    <section class="input-section" id="input-section">
+      <div class="input-card">
+        <label class="input-label" for="symptom-input">
+          <span class="icon">💬</span>
+          Describe your symptoms
+        </label>
+        <textarea
+          id="symptom-input"
+          placeholder="Tell us how you're feeling... For example: 'I've had a headache for two days, and I feel a little dizzy when I stand up.'"
+          spellcheck="true"
+        ></textarea>
+
+        <div class="validation-msg" id="validation-msg">
+          <span>⚠️</span>
+          <span id="validation-text">Please describe your symptoms in more detail (at least 10 characters).</span>
+        </div>
+
+        <div class="input-footer">
+          <div class="example-prompts">
+            <span>Try:</span>
+            <button class="example-chip" data-text="I have a bad headache and feel nauseous">Headache + nausea</button>
+            <button class="example-chip" data-text="Sore throat, runny nose, and mild fever for 3 days">Cold symptoms</button>
+            <button class="example-chip" data-text="Sharp chest pain when breathing deeply">Chest pain</button>
+          </div>
+          <button id="analyze-btn">
+            Analyze Symptoms
+            <span class="btn-icon">→</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Loading ─────────────────────────────── -->
+    <div class="loading-overlay" id="loading">
+      <div class="loading-ring"></div>
+      <div class="loading-text">Aurex AI is analyzing your symptoms…</div>
+      <div class="loading-subtext">Processing with advanced medical knowledge</div>
+    </div>
+
+    <!-- ─── Results ─────────────────────────────── -->
+    <section id="results-section">
+      <div class="results-header">
+        <div class="results-title">
+          <span>📋</span>
+          Analysis Results
+        </div>
+        <div id="severity-badge"></div>
+      </div>
+
+      <div class="results-grid" id="results-grid">
+        <!-- Cards are injected by JS -->
+      </div>
+
+      <div style="text-align: center; margin-top: 28px;">
+        <button class="new-analysis-btn" id="new-analysis-btn">
+          <span>↺</span>
+          New Analysis
+        </button>
+      </div>
+    </section>
+
+    <!-- ─── Disclaimer Footer ───────────────────── -->
+    <footer class="disclaimer-footer" id="disclaimer-footer">
+      <div class="disclaimer-content">
+        <span class="disclaimer-icon">⚕️</span>
+        <p class="disclaimer-text">
+          This app is <strong>powered by Aurex AI</strong> and is <strong>not made by a hospital department</strong>.
+          It provides general information only and is not a substitute for professional medical advice, diagnosis, or treatment.
+        </p>
+      </div>
+    </footer>
+
+    </div> <!-- End view-checker -->
+
+    <!-- ✅ VIEW: HISTORY -->
+    <div id="view-history" class="app-view">
+      <section class="hero" style="padding-bottom: 20px;">
+        <div class="hero-eyebrow">
+          <span class="icon">🕒</span>
+          Your Logs
+        </div>
+        <h1 style="font-size: 2.5rem;">
+          Past <span class="gradient-text">Checks</span>
+        </h1>
+        <p class="hero-subtitle" style="margin-top: 10px;">
+          Review your previous symptom analyses.
+        </p>
+      </section>
+
+      <section class="history-section" id="history-container">
+        <!-- History cards injected by JS -->
+        <div class="empty-state">
+          <div class="empty-icon">📂</div>
+          <p>No symptom history yet.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- ✅ VIEW: PROFILE -->
+    <div id="view-profile" class="app-view">
+      <section class="hero" style="padding-bottom: 20px;">
+        <div class="hero-eyebrow">
+          <span class="icon">👤</span>
+          Health Details
+        </div>
+        <h1 style="font-size: 2.5rem;">
+          Your <span class="gradient-text">Profile</span>
+        </h1>
+      </section>
+
+      <section class="profile-section">
+        <div class="profile-card">
+          <div class="profile-avatar">👤</div>
+          
+          <div class="input-group">
+            <label>Name</label>
+            <input type="text" id="profile-name" placeholder="John Doe">
+          </div>
+          
+          <div class="input-group">
+            <label>Age</label>
+            <input type="number" id="profile-age" placeholder="30">
+          </div>
+
+          <div class="input-group">
+            <label>Pre-existing Conditions</label>
+            <textarea id="profile-conditions" placeholder="e.g. Asthma, High Blood Pressure..."></textarea>
+          </div>
+
+          <button id="save-profile-btn" class="save-btn">Save Profile</button>
+          <button id="logout-btn" class="logout-btn">Log Out</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ─── Bottom App Navigation ───────────────── -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-target="view-checker">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Checker</span>
+      </button>
+      <button class="nav-item" data-target="view-history">
+        <span class="nav-icon">🕒</span>
+        <span class="nav-label">History</span>
+      </button>
+      <button class="nav-item" data-target="view-profile">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Profile</span>
+      </button>
+    </nav>
+
+  </div> <!-- End app-container -->
+
+  <script src="app.js"></script>
+</body>
+</html>
