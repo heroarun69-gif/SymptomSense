@@ -1,16 +1,18 @@
 /* ═══════════════════════════════════════════════════════
    SymptomSense — AI-Powered Symptom Analysis Engine
-   Powered by Groq (Aurex AI)
+   Powered by Groq (Aurex AI) + Supabase
    ═══════════════════════════════════════════════════════ */
 
 // ── API Call ─────────────────────────────────────────────
 async function analyzeWithAI(userInput) {
+  const email = localStorage.getItem('symptomsense_user');
+
   const response = await fetch('/api/analyze', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ input: userInput }),
+    body: JSON.stringify({ input: userInput, email: email }),
   });
 
   if (!response.ok) {
@@ -24,12 +26,10 @@ async function analyzeWithAI(userInput) {
     throw new Error('No response received from AI');
   }
 
-  // Validate required fields exist
   if (!result.severity || !result.causes || !result.care || !result.doctor || !result.tips) {
     throw new Error('AI response missing required fields');
   }
 
-  // Ensure arrays are properly formatted
   return {
     severity: result.severity,
     matchedCount: result.matchedNames?.length || 0,
@@ -79,19 +79,14 @@ const logoutBtn = document.getElementById('logout-btn');
 function initApp() {
   const user = localStorage.getItem('symptomsense_user');
   if (user) {
-    // Logged in
     document.body.classList.remove('auth-active');
     appViews.forEach(v => v.classList.remove('active'));
     viewChecker.classList.add('active');
-
-    // Set first tab active
     navItems.forEach(n => n.classList.remove('active'));
     navItems[0].classList.add('active');
-
     loadProfile();
     renderHistory();
   } else {
-    // Not logged in
     document.body.classList.add('auth-active');
     appViews.forEach(v => v.classList.remove('active'));
     viewAuth.classList.add('active');
@@ -110,7 +105,6 @@ authBtn.addEventListener('click', () => {
     return;
   }
 
-  // Simulate authentication
   authBtn.textContent = 'Authenticating...';
   setTimeout(() => {
     localStorage.setItem('symptomsense_user', email);
@@ -142,16 +136,12 @@ logoutBtn.addEventListener('click', () => {
 // Navigation Tabs
 navItems.forEach(item => {
   item.addEventListener('click', () => {
-    // Remove active class from all
     navItems.forEach(n => n.classList.remove('active'));
     appViews.forEach(v => v.classList.remove('active'));
-
-    // Add active class to clicked tab and its target view
     item.classList.add('active');
     const targetId = item.dataset.target;
     document.getElementById(targetId).classList.add('active');
-
-    // Scroll to top when changing views
+    if (targetId === 'view-history') renderHistory();
     window.scrollTo(0, 0);
   });
 });
@@ -165,7 +155,6 @@ saveProfileBtn.addEventListener('click', () => {
   };
   localStorage.setItem('symptomsense_profile', JSON.stringify(profile));
 
-  // Feedback
   const originalText = saveProfileBtn.textContent;
   saveProfileBtn.textContent = 'Saved!';
   saveProfileBtn.style.color = '#fff';
@@ -189,58 +178,50 @@ function loadProfile() {
   }
 }
 
-// ── History Management ───────────────────────────────────
-function saveToHistory(query, result) {
-  let history = [];
+// ── History Management (Supabase) ────────────────────────
+async function renderHistory() {
+  const email = localStorage.getItem('symptomsense_user');
+  if (!email) return;
+
+  historyContainer.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">⏳</div>
+      <p>Loading your history...</p>
+    </div>`;
+
   try {
-    const saved = localStorage.getItem('symptomsense_history');
-    if (saved) history = JSON.parse(saved);
-  } catch (e) { }
+    const response = await fetch(`/api/history?email=${encodeURIComponent(email)}`);
+    const history = await response.json();
 
-  const entry = {
-    id: Date.now(),
-    date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    query: query,
-    severityLevel: result.severity.level,
-    severityLabel: result.severity.label,
-    causes: result.causes
-  };
+    if (!history || history.length === 0) {
+      historyContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📂</div>
+          <p>No symptom history yet.</p>
+        </div>`;
+      return;
+    }
 
-  history.unshift(entry); // Add to beginning
-  if (history.length > 20) history = history.slice(0, 20); // Keep last 20
+    historyContainer.innerHTML = history.map(item => `
+      <div class="history-card">
+        <div class="history-header">
+          <span class="severity-badge ${item.severity_level}" style="font-size: 0.65rem; padding: 2px 8px;">
+            <span class="severity-dot"></span>${item.severity_label}
+          </span>
+          <span class="history-date">${new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+        </div>
+        <div class="history-query">"${item.query}"</div>
+        <div class="history-causes">Possible causes: ${item.causes.slice(0, 2).map(c => c.split('—')[0].trim()).join(', ')}...</div>
+      </div>
+    `).join('');
 
-  localStorage.setItem('symptomsense_history', JSON.stringify(history));
-  renderHistory();
-}
-
-function renderHistory() {
-  let history = [];
-  try {
-    const saved = localStorage.getItem('symptomsense_history');
-    if (saved) history = JSON.parse(saved);
-  } catch (e) { }
-
-  if (history.length === 0) {
+  } catch (e) {
     historyContainer.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📂</div>
-        <p>No symptom history yet.</p>
+        <div class="empty-icon">⚠️</div>
+        <p>Could not load history.</p>
       </div>`;
-    return;
   }
-
-  historyContainer.innerHTML = history.map(item => `
-    <div class="history-card">
-      <div class="history-header">
-        <span class="severity-badge ${item.severityLevel}" style="font-size: 0.65rem; padding: 2px 8px;">
-          <span class="severity-dot"></span>${item.severityLabel}
-        </span>
-        <span class="history-date">${item.date}</span>
-      </div>
-      <div class="history-query">"${item.query}"</div>
-      <div class="history-causes">Possible causes: ${item.causes.slice(0, 2).map(c => c.split('—')[0].trim()).join(', ')}...</div>
-    </div>
-  `).join('');
 }
 
 // Example chips
@@ -282,7 +263,6 @@ symptomInput.addEventListener('input', () => {
 async function handleAnalyze() {
   const input = symptomInput.value.trim();
 
-  // Validation
   if (input.length < 10) {
     showValidation('Please describe your symptoms in more detail (at least 10 characters).');
     return;
@@ -299,7 +279,7 @@ async function handleAnalyze() {
     loadingOverlay.classList.remove('active');
     analyzeBtn.disabled = false;
     showResults(result);
-    saveToHistory(input, result); // ✅ Save to local history
+    renderHistory(); // ✅ Refresh history from Supabase after new analysis
   } catch (error) {
     loadingOverlay.classList.remove('active');
     analyzeBtn.disabled = false;
@@ -312,7 +292,6 @@ async function handleAnalyze() {
 function showResults(result) {
   const { severity, causes, care, doctor, tips, comboAlerts, matchedNames } = result;
 
-  // Severity badge
   severityBadge.innerHTML = `
     <span class="severity-badge ${severity.level}">
       <span class="severity-dot"></span>
@@ -320,7 +299,6 @@ function showResults(result) {
     </span>
   `;
 
-  // Build combo alert cards (if any critical combos detected)
   const comboHTML = comboAlerts && comboAlerts.length > 0
     ? comboAlerts.map(ca => `
       <div class="result-card combo-alert-card">
@@ -335,7 +313,6 @@ function showResults(result) {
     `).join('')
     : '';
 
-  // Detected symptoms summary
   const detectedHTML = matchedNames && matchedNames.length > 0
     ? `<div class="detected-symptoms">
          <span class="detected-label">Detected:</span>
@@ -343,12 +320,9 @@ function showResults(result) {
        </div>`
     : '';
 
-  // Build result cards
   resultsGrid.innerHTML = `
     ${comboHTML}
-
     ${detectedHTML}
-
     <div class="result-card">
       <div class="card-header">
         <div class="card-icon causes">🔍</div>
@@ -358,7 +332,6 @@ function showResults(result) {
         ${causes.map(c => `<li>${c}</li>`).join('')}
       </ul>
     </div>
-
     <div class="result-card">
       <div class="card-header">
         <div class="card-icon care">💊</div>
@@ -368,7 +341,6 @@ function showResults(result) {
         ${care.map(c => `<li>${c}</li>`).join('')}
       </ul>
     </div>
-
     <div class="result-card doctor-card">
       <div class="card-header">
         <div class="card-icon doctor">🚨</div>
@@ -378,7 +350,6 @@ function showResults(result) {
         ${doctor.map(d => `<li>${d}</li>`).join('')}
       </ul>
     </div>
-
     <div class="result-card">
       <div class="card-header">
         <div class="card-icon tips">💡</div>
@@ -388,7 +359,6 @@ function showResults(result) {
         ${tips.map(t => `<li>${t}</li>`).join('')}
       </ul>
     </div>
-
     <div class="result-card disclaimer-card">
       <div class="card-header">
         <div class="card-icon disclaimer-icon-card">⚕️</div>
@@ -403,11 +373,9 @@ function showResults(result) {
   `;
 
   resultsSection.style.display = 'block';
-  // Trigger reflow for animation
   void resultsSection.offsetWidth;
   resultsSection.classList.add('active');
 
-  // Scroll to results
   setTimeout(() => {
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 100);
@@ -428,7 +396,6 @@ function showErrorResults(errorMessage) {
         <p style="margin-top: 8px; opacity: 0.8; font-weight: 400; font-size: 0.85rem;">${errorMessage}</p>
       </div>
     </div>
-
     <div class="result-card doctor-card">
       <div class="card-header">
         <div class="card-icon doctor">🩺</div>
