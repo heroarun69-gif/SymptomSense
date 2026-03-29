@@ -1,10 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
-
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -15,16 +8,26 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Email required' });
   }
 
-  const { data, error } = await supabase
-    .from('symptom_history')
-    .select('*')
-    .eq('email', email)
-    .order('created_at', { ascending: false })
-    .limit(20);
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-  if (error) {
-    return res.status(500).json({ error: error.message });
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/symptom_history?email=eq.${encodeURIComponent(email)}&order=created_at.desc&limit=20`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const data = await response.json();
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error('History error:', error);
+    return res.status(500).json({ error: 'Could not fetch history' });
   }
-
-  return res.status(200).json(data);
 }
